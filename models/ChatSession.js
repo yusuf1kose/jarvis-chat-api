@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Chat Message Schema (matches your Flutter ChatMsg model)
+// Chat Message Schema 
 const chatMessageSchema = new mongoose.Schema({
   role: {
     type: String,
@@ -19,7 +19,7 @@ const chatMessageSchema = new mongoose.Schema({
   },
 }, { _id: false });
 
-// Chat Session Schema (matches your Flutter ChatSession model)  
+// Chat Session Schema 
 const chatSessionSchema = new mongoose.Schema({
   id: {
     type: String,
