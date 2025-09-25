@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path'); 
 require('dotenv').config();
 
 // Import routes
@@ -57,13 +58,27 @@ const swaggerOptions = {
       },
     },
   },
-  apis: ['./routes/*.js'], // Path to the API files
+ 
+  apis: [
+    path.join(__dirname, './routes/*.js'),
+    path.join(__dirname, 'routes', 'sessions.js'),
+    './routes/sessions.js',
+    __dirname + '/routes/*.js'
+  ],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
+
+console.log('Swagger spec paths found:', Object.keys(swaggerSpec.paths || {}));
+console.log('Current directory:', __dirname);
+console.log('Looking for routes in:', path.join(__dirname, './routes/*.js'));
+
 // Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }',
+}));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -95,6 +110,19 @@ app.get('/', (req, res) => {
   });
 });
 
+// Debug endpoint to check swagger spec
+app.get('/debug/swagger', (req, res) => {
+  res.json({
+    paths: Object.keys(swaggerSpec.paths || {}),
+    swaggerSpec: swaggerSpec,
+    __dirname: __dirname,
+    pathsChecked: [
+      path.join(__dirname, './routes/*.js'),
+      path.join(__dirname, 'routes', 'sessions.js'),
+    ]
+  });
+});
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -118,6 +146,7 @@ app.listen(PORT, () => {
   console.log(`Jarvis Chat API is running on port ${PORT}`);
   console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`Health Check: http://localhost:${PORT}/health`);
+  console.log(`Debug Swagger: http://localhost:${PORT}/debug/swagger`);
   console.log(`Available Endpoints:`);
   console.log(`   POST   /api/sessions`);
   console.log(`   GET    /api/sessions`);
