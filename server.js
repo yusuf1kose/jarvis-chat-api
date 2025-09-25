@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const path = require('path'); 
+const path = require('path');
 require('dotenv').config();
 
 // Import routes
@@ -43,7 +43,7 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: process.env.API_BASE_URL || `http://localhost:${PORT}`,
+        url: process.env.API_BASE_URL || `http://18.217.133.254:3000`,
         description: 'Development server',
       },
     ],
@@ -58,7 +58,7 @@ const swaggerOptions = {
       },
     },
   },
- 
+  // Try multiple path patterns
   apis: [
     path.join(__dirname, './routes/*.js'),
     path.join(__dirname, 'routes', 'sessions.js'),
@@ -69,16 +69,35 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-
+// Debug: Log the swagger spec to see if it's finding the docs
 console.log('Swagger spec paths found:', Object.keys(swaggerSpec.paths || {}));
 console.log('Current directory:', __dirname);
 console.log('Looking for routes in:', path.join(__dirname, './routes/*.js'));
 
-// Swagger UI
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+// Swagger UI with better configuration
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', swaggerUi.setup(swaggerSpec, {
   explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
+  customCss: `
+    .swagger-ui .topbar { display: none }
+    .swagger-ui .info { margin: 20px 0 }
+  `,
+  customSiteTitle: "Jarvis Chat API Documentation",
+  swaggerOptions: {
+    persistAuthorization: true,
+    displayRequestDuration: true,
+    docExpansion: 'list',
+    filter: true,
+    showExtensions: true,
+    showCommonExtensions: true
+  }
 }));
+
+// Serve raw swagger JSON
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -100,6 +119,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     documentation: '/api-docs',
     health: '/health',
+    swagger_json: '/swagger.json',
+    debug: '/debug/swagger',
     endpoints: {
       'POST /api/sessions': 'Create new chat session',
       'GET /api/sessions': 'Get all sessions for user',
@@ -123,11 +144,30 @@ app.get('/debug/swagger', (req, res) => {
   });
 });
 
+// Alternative Swagger UI endpoint (sometimes /api-docs/ with trailing slash works better)
+app.get('/docs', swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customSiteTitle: "Jarvis Chat API Documentation"
+}));
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'Endpoint not found',
     message: `Cannot ${req.method} ${req.originalUrl}`,
+    availableEndpoints: [
+      'GET /',
+      'GET /health',
+      'GET /api-docs',
+      'GET /docs',
+      'GET /swagger.json',
+      'GET /debug/swagger',
+      'POST /api/sessions',
+      'GET /api/sessions',
+      'GET /api/sessions/:id',
+      'PUT /api/sessions/:id',
+      'DELETE /api/sessions/:id'
+    ]
   });
 });
 
@@ -142,11 +182,14 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Jarvis Chat API is running on port ${PORT}`);
-  console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`Health Check: http://localhost:${PORT}/health`);
-  console.log(`Debug Swagger: http://localhost:${PORT}/debug/swagger`);
+  console.log(`Server accessible at: http://18.217.133.254:${PORT}`);
+  console.log(`API Documentation: http://18.217.133.254:${PORT}/api-docs`);
+  console.log(`Alternative Docs: http://18.217.133.254:${PORT}/docs`);
+  console.log(`Swagger JSON: http://18.217.133.254:${PORT}/swagger.json`);
+  console.log(`Health Check: http://18.217.133.254:${PORT}/health`);
+  console.log(`Debug Swagger: http://18.217.133.254:${PORT}/debug/swagger`);
   console.log(`Available Endpoints:`);
   console.log(`   POST   /api/sessions`);
   console.log(`   GET    /api/sessions`);
